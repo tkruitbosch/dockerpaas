@@ -36,6 +36,12 @@
       "Type" : "String",
       "Default" : "t2.micro",
       "AllowedValues" : ["t2.micro"]
+    },
+    "StackatoInstanceType" : {
+      "Description" : "Instance type of Stackato hosts",
+      "Type" : "String",
+      "Default" : "m3.medium",
+      "AllowedValues" : ["m3.medium"]
     }
   },
 
@@ -87,6 +93,10 @@
     "AWSRegionBastionAMI" : {
       "eu-west-1"      : { "HVM64" : "ami-6e7bd919"},
       "eu-central-1"   : { "HVM64" : "ami-b43503a9"}
+    },
+    "AWSRegionStackatoAMI" : {
+      "eu-west-1"      : { "HVM64" : "ami-fb9b488c"},
+      "eu-central-1"   : { "HVM64" : "ami-70eddb6d"}
     }
   },
 
@@ -436,6 +446,312 @@
               }
             ]
           }
+        ]
+      }
+    },
+    "stackatoccaz1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "FALSE",
+	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
+                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
+        "InstanceType": { "Ref" : "StackatoInstanceType" },
+        "KeyName": { "Ref" : "KeyName" },
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "stackato-cc-az-1"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "Primary network interface",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "privateaz1"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "10.0.3.5",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "defaultsecuritygroup"
+              },
+              {
+                "Ref": "allowsshfrombastionsecuritygroup"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "stackatoccaz2": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "FALSE",
+	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
+                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
+        "InstanceType": { "Ref" : "StackatoInstanceType" },
+        "KeyName": { "Ref" : "KeyName" },
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "stackato-cc-az-2"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "Primary network interface",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "privateaz2"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "10.0.4.5",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "defaultsecuritygroup"
+              },
+              {
+                "Ref": "allowsshfrombastionsecuritygroup"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "stackatorouteraz1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "FALSE",
+	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
+                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
+        "InstanceType": { "Ref" : "StackatoInstanceType" },
+        "KeyName": { "Ref" : "KeyName" },
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "stackato-router-az-1"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "Primary network interface",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "privateaz1"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "10.0.3.6",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "defaultsecuritygroup"
+              },
+              {
+                "Ref": "allowsshfrombastionsecuritygroup"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "stackatorouteraz2": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "FALSE",
+	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
+                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
+        "InstanceType": { "Ref" : "StackatoInstanceType" },
+        "KeyName": { "Ref" : "KeyName" },
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "stackato-router-az-2"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "Primary network interface",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "privateaz2"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "10.0.4.6",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "defaultsecuritygroup"
+              },
+              {
+                "Ref": "allowsshfrombastionsecuritygroup"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "stackatodeaaz1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "FALSE",
+	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
+                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
+        "InstanceType": { "Ref" : "StackatoInstanceType" },
+        "KeyName": { "Ref" : "KeyName" },
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "stackato-dea-az-1"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "Primary network interface",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "privateaz1"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "10.0.3.7",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "defaultsecuritygroup"
+              },
+              {
+                "Ref": "allowsshfrombastionsecuritygroup"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "stackatodeaaz2": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "FALSE",
+	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
+                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
+        "InstanceType": { "Ref" : "StackatoInstanceType" },
+        "KeyName": { "Ref" : "KeyName" },
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "stackato-dea-az-2"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "Primary network interface",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "privateaz2"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "10.0.4.7",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "defaultsecuritygroup"
+              },
+              {
+                "Ref": "allowsshfrombastionsecuritygroup"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "stackatodeaaz1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": "FALSE",
+	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
+                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
+        "InstanceType": { "Ref" : "StackatoInstanceType" },
+        "KeyName": { "Ref" : "KeyName" },
+        "Monitoring": "false",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "stackato-service-az-1"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "DeleteOnTermination": "true",
+            "Description": "Primary network interface",
+            "DeviceIndex": 0,
+            "SubnetId": {
+              "Ref": "privateaz1"
+            },
+            "PrivateIpAddresses": [
+              {
+                "PrivateIpAddress": "10.0.3.8",
+                "Primary": "true"
+              }
+            ],
+            "GroupSet": [
+              {
+                "Ref": "defaultsecuritygroup"
+              },
+              {
+                "Ref": "allowsshfrombastionsecuritygroup"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "allowsshfrombastionsecuritygroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "allow ssh access from the bastion hosts",
+        "VpcId": {
+          "Ref": "xdockervpc"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "SourceSecurityGroupId": { "Ref": "bastionsecuritygroup" }
+          }
+        ],
+        "SecurityGroupEgress": [
         ]
       }
     },
