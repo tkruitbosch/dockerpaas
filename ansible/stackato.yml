@@ -1,0 +1,40 @@
+---
+# This play book does a complete setup of the stackato cluster
+# Please note that no care has yet been taken to provide idempotentency
+# although stackato appears to be pretty lenient for re-executing the same commands
+
+      - hosts: cloudcontrollers
+        tasks:
+	- name: rename node
+	  command: kato node rename {{external_dns_name}} --no-restart
+	- name: core setup
+          command: kato node core setup {{external_dns_name}}
+	- name: set license
+	  command: kato license set {{stackato_license}}
+	- name: enable license
+          command: kato license enable
+	- name: first user
+	  command: kato node firstuser {{admin_email}}  --username {{admin_email}} --password {{admin_password}} {{admin_organization}}
+
+      - hosts: services
+        tasks:
+	- name: rename node
+	  command: kato node rename  $(ec2metadata --local-ipv4).xip.io --no-restart
+	- name: attach data-services
+	  command: kato node attach -e data-services 10.0.3.5
+
+      - hosts: deas
+        tasks:
+	- name: rename node
+	  command: kato node rename  $(ec2metadata --local-ipv4).xip.io --no-restart
+	- name: attach data-services
+	  command: kato node attach -e dea 10.0.3.5
+
+
+      - hosts: routers
+        tasks:
+	- name: rename node
+	  command: kato node rename  $(ec2metadata --local-ipv4).xip.io --no-restart
+	- name: attach data-services
+	  command: kato node attach -e routers 10.0.3.5
+
