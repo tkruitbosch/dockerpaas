@@ -8,22 +8,10 @@
       "ConstraintDescription" : "must be the name of an existing EC2 KeyPair."
     },
     "Region": {
-      "Description" : "Region to deploy xdocker to",
+      "Description" : "Region to deploy stackato to",
       "Type" : "String",
       "Default" : "eu-central-1",
       "AllowedValues" : ["eu-central-1", "eu-west-1" ]
-    },
-    "AvailabilityZone1" : {
-      "Description" : "First AZ to deploy xdocker to",
-      "Type" : "String",
-      "Default" : "eu-central-1a",
-      "AllowedValues" : ["eu-central-1a", "eu-west-1a" ]
-    },
-    "AvailabilityZone2" : {
-      "Description" : "Second AZ to deploy xdocker to",
-      "Type" : "String",
-      "Default" : "eu-central-1b",
-      "AllowedValues" : ["eu-central-1b", "eu-west-1b" ]
     },
     "NatInstanceType" : {
       "Description" : "Instance type of NAT hosts",
@@ -32,7 +20,7 @@
       "AllowedValues" : ["m3.medium"]
     },
     "BastionInstanceType" : {
-      "Description" : "Instance type of bastion hosts",
+      "Description" : "Instance type of Bastion hosts",
       "Type" : "String",
       "Default" : "t2.micro",
       "AllowedValues" : ["t2.micro"]
@@ -42,10 +30,18 @@
       "Type" : "String",
       "Default" : "m3.medium",
       "AllowedValues" : ["m3.medium"]
+    },
+    "SSLCertificateId" : {
+      "Description" : "SSL Certificate Id to be used for SSL traffic",
+      "Type" : "String"
     }
   },
 
   "Mappings" : {
+    "AvailabilityZones" : {
+	"eu-west-1" 	: { "Zone1" : "eu-west-1a", "Zone2" : "eu-west-1b" },
+	"eu-central-1" 	: { "Zone1" : "eu-central-1a", "Zone2" : "eu-central-1b" }
+    },
     "AWSInstanceType2Arch" : {
       "t1.micro"    : { "Arch" : "PV64"   },
       "t2.micro"    : { "Arch" : "HVM64"  },
@@ -101,7 +97,7 @@
   },
 
   "Resources": {
-    "xdockervpc": {
+    "StackatoVPC": {
       "Type": "AWS::EC2::VPC",
       "Properties": {
         "CidrBlock": "10.0.0.0/16",
@@ -111,18 +107,18 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "xdocker-vpc"
+            "Value": "stackato-vpc"
           }
         ]
       }
     },
-    "publicaz1": {
+    "PublicSubnetAZ1": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "CidrBlock": "10.0.1.0/24",
-        "AvailabilityZone":   { "Ref" : "AvailabilityZone1" },
+        "AvailabilityZone":   { "Fn::FindInMap" : [ "AvailabilityZones", { "Ref" : "Region" }, "Zone1" ] },
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "Tags": [
           {
@@ -132,45 +128,45 @@
         ]
       }
     },
-    "publicaz2": {
+    "PublicSubnetAZ2": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "CidrBlock": "10.0.2.0/24",
-        "AvailabilityZone":   { "Ref" : "AvailabilityZone2" },
+        "AvailabilityZone":   { "Fn::FindInMap" : [ "AvailabilityZones", { "Ref" : "Region" }, "Zone2" ] },
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "Tags": [
           {
             "Key": "Name",
-            "Value": "publicaz2"
+            "Value": "public-az-2"
           }
         ]
       }
     },
-    "privateaz1": {
+    "PrivateSubnetAZ1": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "CidrBlock": "10.0.3.0/24",
-        "AvailabilityZone":   { "Ref" : "AvailabilityZone1" },
+        "AvailabilityZone":   { "Fn::FindInMap" : [ "AvailabilityZones", { "Ref" : "Region" }, "Zone1" ] },
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "Tags": [
           {
             "Key": "Name",
-            "Value": "privateaz1"
+            "Value": "private-az-1"
           }
         ]
       }
     },
-    "privateaz2": {
+    "PrivateSubnetAZ2": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "CidrBlock": "10.0.4.0/24",
-        "AvailabilityZone":   { "Ref" : "AvailabilityZone2" },
+        "AvailabilityZone":   { "Fn::FindInMap" : [ "AvailabilityZones", { "Ref" : "Region" }, "Zone2" ] },
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "Tags": [
           {
@@ -180,18 +176,18 @@
         ]
       }
     },
-    "internetgateway": {
+    "InternetGateway": {
       "Type": "AWS::EC2::InternetGateway",
       "Properties": {
         "Tags": [
           {
             "Key": "Name",
-            "Value": "xdocker-igw"
+            "Value": "stackato-igw"
           }
         ]
       }
     },
-    "xdockerdhcp": {
+    "StackatoDHCP": {
       "Type": "AWS::EC2::DHCPOptions",
       "Properties": {
         "DomainName": "eu-west-1.compute.internal",
@@ -200,33 +196,33 @@
         ]
       }
     },
-    "xdockernetworkacl": {
+    "StackatoNetworkACL": {
       "Type": "AWS::EC2::NetworkAcl",
       "Properties": {
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         }
       }
     },
-    "xdockermaygo": {
+    "stackatomaygo": {
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "Tags": [
           {
             "Key": "Name",
-            "Value": "xdocker-main-route"
+            "Value": "stackato-main-route"
           }
         ]
       }
     },
-    "xdockerpublicroutetable": {
+    "StackatoPublicRouteTable": {
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "Tags": [
           {
@@ -236,11 +232,11 @@
         ]
       }
     },
-    "xdockerprivateroutetable": {
+    "StackatoPrivateRouteTable": {
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "Tags": [
           {
@@ -250,55 +246,107 @@
         ]
       }
     },
-    "bastionhostaz1ip": {
+    "BastionHostAZ1ip": {
       "Type": "AWS::EC2::EIP",
       "DependsOn": [
-        "gw1"
+        "Gateway1"
       ],
       "Properties": {
         "Domain": "vpc",
         "InstanceId": {
-          "Ref": "bastionhostaz1"
+          "Ref": "BastionHostAZ1"
         }
       }
     },
-    "bastionhostaz2ip": {
+    "BastionHostAZ2ip": {
       "Type": "AWS::EC2::EIP",
       "DependsOn": [
-        "gw1"
+        "Gateway1"
       ],
       "Properties": {
         "Domain": "vpc",
         "InstanceId": {
-          "Ref": "bastionhostaz2"
+          "Ref": "BastionHostAZ2"
         }
       }
     },
-    "nathostaz2ip": {
+    "NATHostAZ2ip": {
       "Type": "AWS::EC2::EIP",
       "DependsOn": [
-        "gw1"
+        "Gateway1"
       ],
       "Properties": {
         "Domain": "vpc",
         "InstanceId": {
-          "Ref": "nathostaz2"
+          "Ref": "NATHostAZ2"
         }
       }
     },
-    "nathostaz1ip": {
+    "NATHostAZ1ip": {
       "Type": "AWS::EC2::EIP",
       "DependsOn": [
-        "gw1"
+        "Gateway1"
       ],
       "Properties": {
         "Domain": "vpc",
         "InstanceId": {
-          "Ref": "nathostaz1"
+          "Ref": "NATHostAZ1"
         }
       }
     },
-    "nathostaz1": {
+    "RouterLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+	"CrossZone" : true,
+        "Subnets": [
+          {
+            "Ref": "PublicSubnetAZ1"
+          },
+          {
+            "Ref": "PublicSubnetAZ2"
+          }
+        ],
+        "HealthCheck": {
+          "HealthyThreshold": "10",
+          "Interval": "30",
+          "Target": "TCP:80",
+          "Timeout": "5",
+          "UnhealthyThreshold": "2"
+        },
+        "Instances": [
+          {
+            "Ref": "StackatoRouterAZ1"
+          },
+          {
+            "Ref": "StackatoRouterAZ2"
+          }
+        ],
+        "SecurityGroups": [
+          {
+            "Ref": "LoadBalancerSecurityGroup"
+          }
+        ],
+        "Listeners": [
+          {
+            "InstancePort": "80",
+            "LoadBalancerPort": "80",
+            "Protocol": "HTTP",
+            "InstanceProtocol": "HTTP"
+          },
+          {
+            "InstancePort": "80",
+            "LoadBalancerPort": "443",
+            "Protocol": "HTTPS",
+            "InstanceProtocol": "HTTP",
+            "SSLCertificateId": { "Ref" : "SSLCertificateId" },
+            "PolicyNames": [
+              "ELBSecurityPolicy-2014-10"
+            ]
+          }
+        ]
+      }
+    },
+    "NATHostAZ1": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -318,7 +366,7 @@
             "DeleteOnTermination": "true",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "publicaz1"
+              "Ref": "PublicSubnetAZ1"
             },
             "PrivateIpAddresses": [
               {
@@ -328,14 +376,14 @@
             ],
             "GroupSet": [
               {
-                "Ref": "defaultsecuritygroup"
+                "Ref": "defaultSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "nathostaz2": {
+    "NATHostAZ2": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -356,7 +404,7 @@
             "Description": "Primary network interface",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "publicaz2"
+              "Ref": "PublicSubnetAZ2"
             },
             "PrivateIpAddresses": [
               {
@@ -366,14 +414,14 @@
             ],
             "GroupSet": [
               {
-                "Ref": "defaultsecuritygroup"
+                "Ref": "defaultSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "bastionhostaz1": {
+    "BastionHostAZ1": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -385,7 +433,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "bastion-host-az1"
+            "Value": "Bastion-host-az1"
           }
         ],
         "NetworkInterfaces": [
@@ -394,7 +442,7 @@
             "Description": "Primary network interface",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "publicaz1"
+              "Ref": "PublicSubnetAZ1"
             },
             "PrivateIpAddresses": [
               {
@@ -404,14 +452,14 @@
             ],
             "GroupSet": [
               {
-                "Ref": "bastionsecuritygroup"
+                "Ref": "BastionSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "bastionhostaz2": {
+    "BastionHostAZ2": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -423,7 +471,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "bastion-host-az-2"
+            "Value": "Bastion-host-az-2"
           }
         ],
         "NetworkInterfaces": [
@@ -432,7 +480,7 @@
             "Description": "Primary network interface",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "publicaz2"
+              "Ref": "PublicSubnetAZ2"
             },
             "PrivateIpAddresses": [
               {
@@ -442,14 +490,14 @@
             ],
             "GroupSet": [
               {
-                "Ref": "bastionsecuritygroup"
+                "Ref": "BastionSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "stackatoccaz1": {
+    "StackatoCloudControllerAZ1": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -470,7 +518,7 @@
             "Description": "Primary network interface",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "privateaz1"
+              "Ref": "PrivateSubnetAZ1"
             },
             "PrivateIpAddresses": [
               {
@@ -480,58 +528,17 @@
             ],
             "GroupSet": [
               {
-                "Ref": "defaultsecuritygroup"
+                "Ref": "defaultSecurityGroup"
               },
               {
-                "Ref": "allowsshfrombastionsecuritygroup"
+                "Ref": "AllowSSHFromBastionSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "stackatoccaz2": {
-      "Type": "AWS::EC2::Instance",
-      "Properties": {
-        "DisableApiTermination": "FALSE",
-	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
-                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
-        "InstanceType": { "Ref" : "StackatoInstanceType" },
-        "KeyName": { "Ref" : "KeyName" },
-        "Monitoring": "false",
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "stackato-cc-az-2"
-          }
-        ],
-        "NetworkInterfaces": [
-          {
-            "DeleteOnTermination": "true",
-            "Description": "Primary network interface",
-            "DeviceIndex": 0,
-            "SubnetId": {
-              "Ref": "privateaz2"
-            },
-            "PrivateIpAddresses": [
-              {
-                "PrivateIpAddress": "10.0.4.5",
-                "Primary": "true"
-              }
-            ],
-            "GroupSet": [
-              {
-                "Ref": "defaultsecuritygroup"
-              },
-              {
-                "Ref": "allowsshfrombastionsecuritygroup"
-              }
-            ]
-          }
-        ]
-      }
-    },
-    "stackatorouteraz1": {
+    "StackatoRouterAZ1": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -552,7 +559,7 @@
             "Description": "Primary network interface",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "privateaz1"
+              "Ref": "PrivateSubnetAZ1"
             },
             "PrivateIpAddresses": [
               {
@@ -562,17 +569,20 @@
             ],
             "GroupSet": [
               {
-                "Ref": "defaultsecuritygroup"
+                "Ref": "defaultSecurityGroup"
               },
               {
-                "Ref": "allowsshfrombastionsecuritygroup"
+                "Ref": "AllowSSHFromBastionSecurityGroup"
+              },
+              {
+                "Ref": "AllowFromLoadBalancerSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "stackatorouteraz2": {
+    "StackatoRouterAZ2": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -593,7 +603,7 @@
             "Description": "Primary network interface",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "privateaz2"
+              "Ref": "PrivateSubnetAZ2"
             },
             "PrivateIpAddresses": [
               {
@@ -603,17 +613,20 @@
             ],
             "GroupSet": [
               {
-                "Ref": "defaultsecuritygroup"
+                "Ref": "defaultSecurityGroup"
               },
               {
-                "Ref": "allowsshfrombastionsecuritygroup"
+                "Ref": "AllowSSHFromBastionSecurityGroup"
+              },
+              {
+                "Ref": "AllowFromLoadBalancerSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "stackatodeaaz1": {
+    "StackatoDeaAZ1": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -634,7 +647,7 @@
             "Description": "Primary network interface",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "privateaz1"
+              "Ref": "PrivateSubnetAZ1"
             },
             "PrivateIpAddresses": [
               {
@@ -644,17 +657,17 @@
             ],
             "GroupSet": [
               {
-                "Ref": "defaultsecuritygroup"
+                "Ref": "defaultSecurityGroup"
               },
               {
-                "Ref": "allowsshfrombastionsecuritygroup"
+                "Ref": "AllowSSHFromBastionSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "stackatodeaaz2": {
+    "StackatoDeaAZ2": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -675,7 +688,7 @@
             "Description": "Primary network interface",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "privateaz2"
+              "Ref": "PrivateSubnetAZ2"
             },
             "PrivateIpAddresses": [
               {
@@ -685,17 +698,17 @@
             ],
             "GroupSet": [
               {
-                "Ref": "defaultsecuritygroup"
+                "Ref": "defaultSecurityGroup"
               },
               {
-                "Ref": "allowsshfrombastionsecuritygroup"
+                "Ref": "AllowSSHFromBastionSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "stackatodeaaz1": {
+    "StackatoDeaAZ1": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
@@ -716,7 +729,7 @@
             "Description": "Primary network interface",
             "DeviceIndex": 0,
             "SubnetId": {
-              "Ref": "privateaz1"
+              "Ref": "PrivateSubnetAZ1"
             },
             "PrivateIpAddresses": [
               {
@@ -726,41 +739,89 @@
             ],
             "GroupSet": [
               {
-                "Ref": "defaultsecuritygroup"
+                "Ref": "defaultSecurityGroup"
               },
               {
-                "Ref": "allowsshfrombastionsecuritygroup"
+                "Ref": "AllowSSHFromBastionSecurityGroup"
               }
             ]
           }
         ]
       }
     },
-    "allowsshfrombastionsecuritygroup": {
+    "LoadBalancerSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "allow ssh access from the bastion hosts",
+        "GroupDescription": "allows network connections from the public internet.",
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "SecurityGroupIngress": [
           {
             "IpProtocol": "tcp",
-            "FromPort": "22",
-            "ToPort": "22",
-            "SourceSecurityGroupId": { "Ref": "bastionsecuritygroup" }
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "443",
+            "ToPort": "443",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ],
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "-1",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "AllowFromLoadBalancerSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allows inbound HTTP and HTTPS traffic",
+        "VpcId": {
+          "Ref": "StackatoVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "SourceSecurityGroupId": { "Ref": "LoadBalancerSecurityGroup" }
           }
         ],
         "SecurityGroupEgress": [
         ]
       }
     },
-    "bastionsecuritygroup": {
+    "AllowSSHFromBastionSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "bastion host",
+        "GroupDescription": "allow ssh access from the Bastion hosts",
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
+        },
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "SourceSecurityGroupId": { "Ref": "BastionSecurityGroup" }
+          }
+        ],
+        "SecurityGroupEgress": [
+        ]
+      }
+    },
+    "BastionSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Bastion host",
+        "VpcId": {
+          "Ref": "StackatoVPC"
         },
         "SecurityGroupIngress": [
           {
@@ -784,12 +845,12 @@
         ]
       }
     },
-    "defaultsecuritygroup": {
+    "defaultSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
         "GroupDescription": "default VPC security group",
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "SecurityGroupEgress": [
           {
@@ -808,7 +869,7 @@
         "RuleAction": "allow",
         "RuleNumber": "100",
         "NetworkAclId": {
-          "Ref": "xdockernetworkacl"
+          "Ref": "StackatoNetworkACL"
         }
       }
     },
@@ -820,120 +881,120 @@
         "RuleAction": "allow",
         "RuleNumber": "100",
         "NetworkAclId": {
-          "Ref": "xdockernetworkacl"
+          "Ref": "StackatoNetworkACL"
         }
       }
     },
-    "subnetacl1": {
+    "SubnetACL1": {
       "Type": "AWS::EC2::SubnetNetworkAclAssociation",
       "Properties": {
         "NetworkAclId": {
-          "Ref": "xdockernetworkacl"
+          "Ref": "StackatoNetworkACL"
         },
         "SubnetId": {
-          "Ref": "privateaz1"
+          "Ref": "PrivateSubnetAZ1"
         }
       }
     },
-    "subnetacl2": {
+    "SubnetACL2": {
       "Type": "AWS::EC2::SubnetNetworkAclAssociation",
       "Properties": {
         "NetworkAclId": {
-          "Ref": "xdockernetworkacl"
+          "Ref": "StackatoNetworkACL"
         },
         "SubnetId": {
-          "Ref": "privateaz2"
+          "Ref": "PrivateSubnetAZ2"
         }
       }
     },
-    "subnetacl3": {
+    "SubnetACL3": {
       "Type": "AWS::EC2::SubnetNetworkAclAssociation",
       "Properties": {
         "NetworkAclId": {
-          "Ref": "xdockernetworkacl"
+          "Ref": "StackatoNetworkACL"
         },
         "SubnetId": {
-          "Ref": "publicaz1"
+          "Ref": "PublicSubnetAZ1"
         }
       }
     },
-    "subnetacl4": {
+    "SubnetACL4": {
       "Type": "AWS::EC2::SubnetNetworkAclAssociation",
       "Properties": {
         "NetworkAclId": {
-          "Ref": "xdockernetworkacl"
+          "Ref": "StackatoNetworkACL"
         },
         "SubnetId": {
-          "Ref": "publicaz2"
+          "Ref": "PublicSubnetAZ2"
         }
       }
     },
-    "gw1": {
+    "Gateway1": {
       "Type": "AWS::EC2::VPCGatewayAttachment",
       "Properties": {
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "InternetGatewayId": {
-          "Ref": "internetgateway"
+          "Ref": "InternetGateway"
         }
       }
     },
-    "subnetroute1": {
+    "SubnetRoute1": {
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "RouteTableId": {
-          "Ref": "xdockerpublicroutetable"
+          "Ref": "StackatoPublicRouteTable"
         },
         "SubnetId": {
-          "Ref": "publicaz2"
+          "Ref": "PublicSubnetAZ2"
         }
       }
     },
-    "subnetroute2": {
+    "SubnetRoute2": {
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "RouteTableId": {
-          "Ref": "xdockerpublicroutetable"
+          "Ref": "StackatoPublicRouteTable"
         },
         "SubnetId": {
-          "Ref": "publicaz1"
+          "Ref": "PublicSubnetAZ1"
         }
       }
     },
-    "route1": {
+    "Route1": {
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
         "RouteTableId": {
-          "Ref": "xdockerpublicroutetable"
+          "Ref": "StackatoPublicRouteTable"
         },
         "GatewayId": {
-          "Ref": "internetgateway"
+          "Ref": "InternetGateway"
         }
       },
-      "DependsOn": "gw1"
+      "DependsOn": "Gateway1"
     },
-    "route2": {
+    "Route2": {
       "Type": "AWS::EC2::Route",
       "Properties": {
         "DestinationCidrBlock": "0.0.0.0/0",
         "RouteTableId": {
-          "Ref": "xdockerprivateroutetable"
+          "Ref": "StackatoPrivateRouteTable"
         },
         "InstanceId": {
-          "Ref": "nathostaz1"
+          "Ref": "NATHostAZ1"
         }
       }
     },
-    "dchpassoc1": {
+    "DCHPAssoc1": {
       "Type": "AWS::EC2::VPCDHCPOptionsAssociation",
       "Properties": {
         "VpcId": {
-          "Ref": "xdockervpc"
+          "Ref": "StackatoVPC"
         },
         "DhcpOptionsId": {
-          "Ref": "xdockerdhcp"
+          "Ref": "StackatoDHCP"
         }
       }
     },
@@ -941,7 +1002,7 @@
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
         "GroupId": {
-          "Ref": "bastionsecuritygroup"
+          "Ref": "BastionSecurityGroup"
         },
         "IpProtocol": "tcp",
         "FromPort": "22",
@@ -953,7 +1014,7 @@
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
         "GroupId": {
-          "Ref": "bastionsecuritygroup"
+          "Ref": "BastionSecurityGroup"
         },
         "IpProtocol": "icmp",
         "FromPort": "0",
@@ -965,11 +1026,11 @@
       "Type": "AWS::EC2::SecurityGroupIngress",
       "Properties": {
         "GroupId": {
-          "Ref": "defaultsecuritygroup"
+          "Ref": "defaultSecurityGroup"
         },
         "IpProtocol": "-1",
         "SourceSecurityGroupId": {
-          "Ref": "defaultsecuritygroup"
+          "Ref": "defaultSecurityGroup"
         },
         "SourceSecurityGroupOwnerId": "233211978703"
       }
@@ -978,7 +1039,7 @@
       "Type": "AWS::EC2::SecurityGroupEgress",
       "Properties": {
         "GroupId": {
-          "Ref": "bastionsecuritygroup"
+          "Ref": "BastionSecurityGroup"
         },
         "IpProtocol": "-1",
 	"CidrIp" : "0.0.0.0/0"
@@ -988,12 +1049,12 @@
       "Type": "AWS::EC2::SecurityGroupEgress",
       "Properties": {
         "GroupId": {
-          "Ref": "defaultsecuritygroup"
+          "Ref": "defaultSecurityGroup"
         },
         "IpProtocol": "-1",
 	"CidrIp" : "0.0.0.0/0"
       }
     }
   },
-  "Description": "xdocker high availability template"
+  "Description": "stackato high availability template"
 }

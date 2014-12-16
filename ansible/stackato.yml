@@ -4,6 +4,12 @@
 # although stackato appears to be pretty lenient for re-executing the same commands
 
       - hosts: cloudcontrollers
+        vars:
+	- external_dns_name: xdocker.xebia.dynanic-dns.net
+	- admin_email: mvanholsteijn@xebia.com
+	- admin_password: Welkom123!
+	- admin_organization: Xebia Nederland B.V.
+
         tasks:
 	- name: rename node
 	  command: kato node rename {{external_dns_name}} --no-restart
