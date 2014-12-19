@@ -20,7 +20,7 @@
         - name: enable license
           command: kato license enable
         - name: first user
-          command: kato node firstuser {{admin_email}}  --username {{admin_email}} --password {{admin_password}} {{admin_organization}}
+          command: kato node setup firstuser {{admin_email}}  --username {{admin_email}} --password {{admin_password}} {{admin_organization}}
 
       - hosts: services
         tasks:
