@@ -1,14 +1,12 @@
 #!/bin/bash
 
-DOMAIN_NAME=
-STACK_NAME=
-REGION=eu-central-1
-STACK_DIR=stacks/
-ORGANIZATION=
-LICENSE=
-EMAIL=
-
-HOSTS="cc-az-1 router-az-1 router-az-2 dea-1-az-1 dea-2-az-2 dea-3-az-1 dea-4-az-2 services-az-1"
+export DOMAIN_NAME=
+export STACK_NAME=
+export REGION=eu-central-1
+export STACK_DIR=stacks/
+export ORGANIZATION=
+export LICENSE=
+export EMAIL=
 
 function parseCommandLine() {
 	USAGE="Usage: $(basename $0) -d domain-name -o organization -l license -u email [-r region] "
@@ -77,8 +75,12 @@ function getOrGenerateCertificate() {
 }
 
 function getStackStatus() {
-	aws --region $REGION cloudformation describe-stacks --stack-name $STACK_NAME | \
-		jq -r '.Stacks[] | .StackStatus' 2> /dev/null
+	aws --region $REGION cloudformation describe-stacks --stack-name $STACK_NAME 2>/dev/null | \
+		jq -r '.Stacks[] | .StackStatus' 
+}
+
+function getNumberOfInstancesWithoutPrivateIp() {
+	getHostTable | awk '{ if ($3 == "null") count++; } END { print count;}'
 }
 
 function createStack() {
@@ -113,10 +115,16 @@ function createStack() {
 		echo "ERROR: failed to create stack: $(getStackStatus)"
 		exit 1
 	fi
+
+	while [ $(getNumberOfInstancesWithoutPrivateIp) -gt 0 ] ; do
+		echo "INFO: not all instances have a private ip address. sleep 10 seconds.."
+		getHostTable
+		sleep 10
+	done
 }
 
 function getHostTable() {
-	aws --region $REGION ec2 describe-instances --filters  Name=tag:aws:cloudformation:stack-name,Values=$STACK_NAME | \
+	aws --region $REGION ec2 describe-instances --filters  Name=instance-state-name,Values=running Name=tag:aws:cloudformation:stack-name,Values=$STACK_NAME | \
 	  jq  -r ' .Reservations[] | 
 	.Instances[] |  
 	select(.Tags[] |  .Key == "aws:cloudformation:logical-id" ) | 
@@ -129,6 +137,7 @@ function getHostTable() {
 	join("	")' | \
 	sort
 }
+
 
 
 function getPublicIPAddress() {
@@ -146,28 +155,28 @@ function getAllPrivateIPAddresses() {
 function generateSSHConfig() {
 	(
 	getHostTable | grep -v NAT | while read LINE; do
-		
-		set $LINE
-		case $1 in
+		NAME=$(echo $LINE | awk '{print $1;}')
+		PUBLIC_IP=$(echo $LINE | awk '{print $2;}')
+		PRIVATE_IP=$(echo $LINE | awk '{print $3;}')
+		case $NAME in
 		*Bastion*)
 			if [ -z "$FIRST_BASTION" ] ; then
-				FIRST_BASTION=$1
+				FIRST_BASTION=$NAME
 			fi
-			echo "Host $1"
-			echo "	HostName $2"
+			echo "Host $NAME"
+			echo "	HostName $PUBLIC_IP"
 			echo "	User ec2-user"
 			echo "	IdentityFile $(pwd)/$STACK_DIR/$STACK_NAME.pem"
-			echo
+			echo ""
 			;;
 		
-		*NAT*)
-			;;
 		*)
-			echo "Host $1"
-			echo "	HostName $3"
+			echo "Host $NAME"
+			echo "	HostName $PRIVATE_IP"
 			echo "	User stackato"
 			echo "	ProxyCommand  ssh $FIRST_BASTION nc -w 120 %h %p"
-			echo
+			echo "	IdentityFile $(pwd)/$STACK_DIR/$STACK_NAME.pem"
+			echo ""
 			;;
 		esac
 	done
@@ -223,24 +232,26 @@ function updateKnownHosts() {
 	fi
 
 	getHostTable | grep -v NAT | while read LINE; do
-		set $LINE ; HOST=$1
-		case $HOST in
+		NAME=$(echo $LINE | awk '{print $1;}')
+		PUBLIC_IP=$(echo $LINE | awk '{print $2;}')
+		PRIVATE_IP=$(echo $LINE | awk '{print $3;}')
+		case $NAME in
 		*Bastion*)
-			HOST=$2
+			HOST=$PUBLIC_IP
 			if [ -z "$BASTION_HOST" ] ; then
 				BASTION_HOST=$HOST
 			fi
-			KEY=$(ssh-keyscan -t rsa -H $HOST 2>/dev/null)
+			KEY=$(ssh-keyscan -t rsa -H $HOST)
 			;;
 		*)
-			HOST=$3
-			KEY=$(ssh ec2-user@$BASTION_HOST ssh-keyscan -t rsa -H $HOST)
+			HOST=$PRIVATE_IP
+			KEY=$(ssh -i $STACK_DIR/$STACK_NAME.pem ec2-user@$BASTION_HOST ssh-keyscan -t rsa -H $HOST < /dev/null)
 			;;
 		esac
 		if [ -n "$KEY" ] ; then
 			addKeyToKnownHosts $HOST "$KEY"
 		else
-			echo "WARN: keyscan failed for $HOST."
+			echo "WARN: ssh-keyscan failed for $HOST."
 		fi
 	done
 }

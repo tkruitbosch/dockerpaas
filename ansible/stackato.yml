@@ -20,27 +20,36 @@
         - name: enable license
           command: kato license enable
         - name: first user
-          command: kato node setup firstuser {{admin_email}}  --username {{admin_email}} --password {{admin_password}} {{admin_organization}}
+          command: 'kato node setup firstuser "{{admin_email}}"  "{{admin_organization}}" --username "{{admin_email}}" --password "{{admin_password}}"'
+          ignore_errors: yes
 
       - hosts: services
         tasks:
+        - name: get local ip
+          command: ec2metadata --local-ipv4
+          register: local_ip
         - name: rename node
-          command: kato node rename  "$(ec2metadata --local-ipv4).xip.io" --no-restart
-        - name: attach data-services
+          command: kato node rename  {{local_ip.stdout}}.xip.io --no-restart
+        - name: attach as data-services
           command: kato node attach -e data-services 10.0.3.5
 
       - hosts: deas
         tasks:
+        - name: get local ip
+          command: ec2metadata --local-ipv4
+          register: local_ip
         - name: rename node
-          command: kato node rename  "$(ec2metadata --local-ipv4).xip.io" --no-restart
-        - name: attach data-services
+          command: kato node rename  {{local_ip.stdout}}.xip.io --no-restart
+        - name: attach as dea
           command: kato node attach -e dea 10.0.3.5
-
 
       - hosts: routers
         tasks:
+        - name: get local ip
+          command: ec2metadata --local-ipv4
+          register: local_ip
         - name: rename node
-          command: kato node rename  "$(ec2metadata --local-ipv4).xip.io" --no-restart
-        - name: attach data-services
-          command: kato node attach -e routers 10.0.3.5
+          command: kato node rename  {{local_ip.stdout}}.xip.io --no-restart
+        - name: attach as router
+          command: kato node attach -e router 10.0.3.5
 
