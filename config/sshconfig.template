@@ -1,46 +1,59 @@
 ### Bastion Host
 Host BastionHost
-  HostName {{bastion_host_ip}}
+  HostName @@BASTION_HOST_1_IP@@
   User ec2-user
-  IdentityFile ~/Documents/keys/stackato.pem
+  IdentityFile @@SSH_PRIVATE_KEY@@
+
+Host BastionHost2
+  HostName @@BASTION_HOST_2_IP@@
+  User ec2-user
+  IdentityFile @@SSH_PRIVATE_KEY@@
 
 ### CloudController
 Host cc-az-1
   HostName 10.0.3.5
   User stackato
   ProxyCommand  ssh BastionHost nc -w 120 %h %p 
+  IdentityFile @@SSH_PRIVATE_KEY@@
 
 Host router-az-1
   HostName 10.0.3.6
   User stackato
   ProxyCommand  ssh BastionHost nc -w 120 %h %p 
+  IdentityFile @@SSH_PRIVATE_KEY@@
 
 Host dea-1-az-1
   HostName 10.0.3.7
   User stackato
   ProxyCommand  ssh BastionHost nc -w 120 %h %p 
+  IdentityFile @@SSH_PRIVATE_KEY@@
 
 Host dea-3-az-1
   HostName 10.0.3.9
   User stackato
   ProxyCommand  ssh BastionHost nc -w 120 %h %p 
+  IdentityFile @@SSH_PRIVATE_KEY@@
 
 Host services-az-1
   HostName 10.0.3.8
   User stackato
   ProxyCommand  ssh BastionHost nc -w 120 %h %p 
+  IdentityFile @@SSH_PRIVATE_KEY@@
 
 Host router-az-2
   HostName 10.0.4.6
   User stackato
   ProxyCommand  ssh BastionHost nc -w 120 %h %p 
+  IdentityFile @@SSH_PRIVATE_KEY@@
 
 Host dea-2-az-2
   HostName 10.0.4.7
   User stackato
   ProxyCommand  ssh BastionHost nc -w 120 %h %p 
+  IdentityFile @@SSH_PRIVATE_KEY@@
 
 Host dea-4-az-2
   HostName 10.0.4.9
   User stackato
   ProxyCommand  ssh BastionHost nc -w 120 %h %p 
+  IdentityFile @@SSH_PRIVATE_KEY@@

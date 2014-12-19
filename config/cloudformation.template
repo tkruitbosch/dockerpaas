@@ -31,6 +31,12 @@
       "Default" : "m3.medium",
       "AllowedValues" : ["m3.medium"]
     },
+    "StackatoDeaInstanceType" : {
+      "Description" : "Instance type of Stackato DEA hosts",
+      "Type" : "String",
+      "Default" : "m3.medium",
+      "AllowedValues" : ["m3.medium", "m3.xlarge"]
+    },
     "SSLCertificateId" : {
       "Description" : "SSL Certificate Id to be used for SSL traffic",
       "Type" : "String"
@@ -632,7 +638,7 @@
         "DisableApiTermination": "FALSE",
 	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
                           { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
-        "InstanceType": { "Ref" : "StackatoInstanceType" },
+        "InstanceType": { "Ref" : "StackatoDeaInstanceType" },
         "KeyName": { "Ref" : "KeyName" },
         "Monitoring": "false",
         "Tags": [
@@ -673,7 +679,7 @@
         "DisableApiTermination": "FALSE",
 	"ImageId" : { "Fn::FindInMap" : [ "AWSRegionStackatoAMI", { "Ref" : "AWS::Region" },
                           { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "StackatoInstanceType" }, "Arch" ] } ] },
-        "InstanceType": { "Ref" : "StackatoInstanceType" },
+        "InstanceType": { "Ref" : "StackatoDeaInstanceType" },
         "KeyName": { "Ref" : "KeyName" },
         "Monitoring": "false",
         "Tags": [
@@ -708,7 +714,7 @@
         ]
       }
     },
-    "StackatoDeaAZ1": {
+    "StackatoServiceAZ1": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "DisableApiTermination": "FALSE",
