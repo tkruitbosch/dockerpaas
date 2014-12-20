@@ -32,6 +32,8 @@
           command: kato node rename  {{local_ip.stdout}}.xip.io --no-restart
         - name: attach as data-services
           command: kato node attach -e data-services 10.0.3.5
+        - name: change stackato password
+          shell: "(echo '{{admin_password}}'; echo '{{admin_password}}' ) | passwd stackato"
 
       - hosts: deas
         tasks:
@@ -42,6 +44,8 @@
           command: kato node rename  {{local_ip.stdout}}.xip.io --no-restart
         - name: attach as dea
           command: kato node attach -e dea 10.0.3.5
+        - name: change stackato password
+          shell: "(echo '{{admin_password}}'; echo '{{admin_password}}' ) | passwd stackato"
 
       - hosts: routers
         tasks:
@@ -52,4 +56,6 @@
           command: kato node rename  {{local_ip.stdout}}.xip.io --no-restart
         - name: attach as router
           command: kato node attach -e router 10.0.3.5
+        - name: change stackato password
+          shell: "(echo '{{admin_password}}'; echo '{{admin_password}}' ) | passwd stackato"
 

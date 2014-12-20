@@ -80,7 +80,7 @@ function getStackStatus() {
 }
 
 function getNumberOfInstancesWithoutPrivateIp() {
-	getHostTable | awk '{ if ($3 == "null") count++; } END { print count;}'
+	getHostTable | awk 'BEGIN { count=0; } { if ($3 == "null") count++; } END { print count; }'
 }
 
 function createStack() {
@@ -246,6 +246,11 @@ function updateKnownHosts() {
 		*)
 			HOST=$PRIVATE_IP
 			KEY=$(ssh -i $STACK_DIR/$STACK_NAME.pem ec2-user@$BASTION_HOST ssh-keyscan -t rsa -H $HOST < /dev/null)
+			while [ -z "$KEY" ] ; do
+				echo "WARN: ssh-keyscan failed for $HOST. sleep 10 seconds"
+				sleep 10
+				KEY=$(ssh -i $STACK_DIR/$STACK_NAME.pem ec2-user@$BASTION_HOST ssh-keyscan -t rsa -H $HOST < /dev/null)
+			done
 			;;
 		esac
 		if [ -n "$KEY" ] ; then

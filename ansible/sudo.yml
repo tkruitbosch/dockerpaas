@@ -23,6 +23,3 @@
 
         - name: install new sudoer file
           shell: visudo -q -c -f /etc/sudoers.tmp && cp -f /etc/sudoers.tmp /etc/sudoers ; rm /etc/sudoers.tmp
-
-        - name: change stackato password
-          shell: "(echo '{{stackato_password}}'; echo '{{stackato_password}}' ) | passwd stackato"
