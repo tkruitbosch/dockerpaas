@@ -45,12 +45,17 @@ function parseCommandLine() {
 
 function createKeyPair() {
         SSH_PRIVATE_KEY=$(pwd)/$STACK_DIR/$STACK_NAME.pem
-	if [ -z $(aws --region $REGION ec2 describe-key-pairs  | jq " .KeyPairs[] | select(.KeyName == \"$STACK_NAME\") | .KeyName") ] ; then
+	if [ -z "$(aws --region $REGION ec2 describe-key-pairs  --key-names $STACK_NAME)" ]  ; then
 		mkdir -p $STACK_DIR
 		aws --region $REGION ec2 create-key-pair --key-name $STACK_NAME | \
 			jq -r  '.KeyMaterial' | \
 			sed 's/\\n/\r/g' > $STACK_DIR/$STACK_NAME.pem
 		 chmod 0700 $STACK_DIR/$STACK_NAME.pem
+	else
+		if [ ! -f $STACK_DIR/$STACK_NAME.pem ] ; then
+			echo ERROR: key pair $STACK_NAME already exist, but I do not have it in $STACK_DIR.
+			exit 1
+		fi
 	fi
 }
 
@@ -288,7 +293,7 @@ function installSSHConfig() {
 function changeStackatoSudoer() {
 	generateStackatoPassword
 	ansible-playbook -i $STACK_DIR/hosts \
-		-e stackato_password=$STACKATO_PASSWORD \
+		-e "{ \"stackato_password\" : \"$STACKATO_PASSWORD\" }" \
 		ansible/sudo.yml
 }
 
@@ -314,4 +319,3 @@ updateKnownHosts
 generateAnsibleInventory
 changeStackatoSudoer
 initializeStackato
-
