@@ -1,0 +1,15 @@
+[cloudcontrollers]
+cc-az-1
+
+[routers]
+router-az-1
+router-az-2
+
+[deas]
+dea-1-az-1
+dea-2-az-2
+dea-3-az-1
+dea-4-az-2
+
+[services]
+services-az-1
